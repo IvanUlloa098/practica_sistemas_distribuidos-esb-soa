@@ -1,5 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd"></mule>
+<mule xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="6fa281a5-6dfc-4c23-b473-440f29d396dd" basePath="servicios">
+		<http:listener-connection host="localhost" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="dd25acbf-763f-470f-a110-505784839617" >
+		<http:request-connection host="localhost" port="8080" />
+	</http:request-config>
+	<flow name="practica_sistemas_distribuidos-esb-soaFlow" doc:id="98087f94-1600-4b31-b66b-aaecfeac583f" >
+		<http:listener doc:name="Listener" doc:id="d20b3809-3bff-4d05-aeb1-baa06064b786" config-ref="HTTP_Listener_config" path="getInformacionBanco">
+			<repeatable-in-memory-stream />
+		</http:listener>
+		<set-variable value="#[payload.id]" doc:name="Set Variable" doc:id="27cbb4d3-894b-4ba0-9cd2-10c153ed9a4d" variableName="bodega" />
+		<logger level="INFO" doc:name="Logger" doc:id="1f10051e-7b20-403a-96f6-89b382e71a9d" message="This is the payload&gt;&gt; #[vars.bodega]"/>
+		<choice doc:name="Choice" doc:id="c8aa3e82-9924-4487-9015-259284fa917e" >
+			<when expression="#[vars.bodega == 1]">
+				<http:request method="POST" doc:name="Request" doc:id="8f8268a2-23f9-4fa7-a966-015061b62f76" config-ref="HTTP_Request_configuration" path="/Practica-de-laboratorio-04-_Servicios-Web_Integracion-Continua/resource/categoria/list">
+			<http:body><![CDATA[#[%dw 2.0
+
+output application/x-www-form-urlencoded
+
+---
+
+{
+
+bodega_id:vars.bodega
+
+}]]]></http:body>
+		</http:request>
+				<set-variable value="#[payload.nombre]" doc:name="Set Variable" doc:id="04403f4b-6e86-482e-813b-78e940215c91" variableName="nombre" />
+				<logger level="INFO" doc:name="Logger" doc:id="b1025349-4ce4-489a-a2d7-e2261693bb50" message="Todo en funcionamiento... #[payload]" />
+				<logger level="INFO" doc:name="Logger" doc:id="2009c9f8-008d-416a-8db3-b227e9f16af2" message="variable&gt;&gt; #[vars.nombre]" />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="052a7653-de53-4561-8ccc-0a59dd864c83" message="Not the correct answer"/>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

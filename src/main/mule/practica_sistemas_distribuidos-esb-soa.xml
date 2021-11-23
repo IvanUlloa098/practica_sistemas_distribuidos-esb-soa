@@ -25,6 +25,9 @@ http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/m
 	<http:request-config name="HTTP_Request_configuration2" doc:name="HTTP Request configuration" doc:id="b7c19326-dfb1-465c-acc6-73d0fd3ae4a8" >
 		<http:request-connection host="127.0.0.1" port="8000" />
 	</http:request-config>
+	<http:request-config name="HTTP_Request_configuration3" doc:name="HTTP Request configuration" doc:id="0324f0ca-e62f-4d56-bd88-e918c8fc30d1" >
+		<http:request-connection host="blockchain.info" protocol="HTTPS"/>
+	</http:request-config>
 	<flow name="practica_sistemas_distribuidos-esb-soaFlow" doc:id="98087f94-1600-4b31-b66b-aaecfeac583f" >
 		<http:listener doc:name="Listener" doc:id="d20b3809-3bff-4d05-aeb1-baa06064b786" config-ref="HTTP_Listener_config" path="getInformacionBanco">
 			<repeatable-in-memory-stream />
@@ -98,6 +101,8 @@ monto:vars.montoPagar
 }]]]></http:body>
 						</http:request>
 						<logger level="INFO" doc:name="Logger" doc:id="b6dbdfc9-816b-44a9-a978-5cbe19f1c3af" message="EXITO!!!" />
+						<flow-ref doc:name="Flow Reference" doc:id="7705625e-a67c-4606-9740-cb58758a826e" name="Bitcoin_transformation"/>
+						<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	status: "Transaccion realizada",&#10;	bitcoin: vars.bitUSD&#10;}]' doc:name="Set Payload" doc:id="de6894de-41d7-4bd0-a815-0aca314d7d9f" />
 					</when>
 					<otherwise >
 						<logger level="INFO" doc:name="Logger" doc:id="aedb0fe6-fb22-4d23-84e8-70aeeb0dc182" message="IMPOSIBLE REALIZAR LA TRANSACCION"/>
@@ -106,10 +111,10 @@ monto:vars.montoPagar
 			</when>
 			<otherwise >
 				<flow-ref doc:name="Flow Reference" doc:id="4a5194bc-f7f2-487d-a58f-46a723c4cc2a" name="Obtencion_variables"/>
-				<choice doc:name="Choice" doc:id="998803c3-63c8-44a6-9749-043d442165d6" >
+				<choice doc:name="Choice" doc:id="998803c3-63c8-44a6-9749-043d442165d6">
 					<when expression="#[vars.montoPagar &lt; vars.montoCuenta1]">
 						<http:request method="POST" doc:name="Request" doc:id="f218b7b1-bfe0-481c-bd01-423e6c100f1d" config-ref="HTTP_Request_configuration1" path="api/actulizarMontoCuenta/">
-							<http:body ><![CDATA[#[%dw 2.0
+							<http:body><![CDATA[#[%dw 2.0
 
 output application/x-www-form-urlencoded
 
@@ -123,7 +128,7 @@ monto:(vars.montoCuenta1 - vars.montoPagar)
 }]]]></http:body>
 						</http:request>
 						<http:request method="POST" doc:name="Request" doc:id="db08f628-42aa-476f-9476-861cae2b7905" config-ref="HTTP_Request_configuration1" path="api/crearTransferenciaCuenta/">
-							<http:body ><![CDATA[#[%dw 2.0
+							<http:body><![CDATA[#[%dw 2.0
 
 output application/x-www-form-urlencoded
 
@@ -138,7 +143,7 @@ monto:vars.montoPagar
 }]]]></http:body>
 						</http:request>
 						<http:request method="POST" doc:name="Request" doc:id="79425c92-8546-475c-b2f6-e0d880703e28" config-ref="HTTP_Request_configuration2" path="api/actulizarMontoCuenta/">
-							<http:body ><![CDATA[#[%dw 2.0
+							<http:body><![CDATA[#[%dw 2.0
 
 output application/x-www-form-urlencoded
 
@@ -152,7 +157,7 @@ monto:(vars.montoCuenta2 + vars.montoPagar)
 }]]]></http:body>
 						</http:request>
 						<http:request method="POST" doc:name="Request" doc:id="bcef131c-7825-4553-8df4-efcbbd758c10" config-ref="HTTP_Request_configuration2" path="api/crearTransferenciaCuenta/">
-							<http:body ><![CDATA[#[%dw 2.0
+							<http:body><![CDATA[#[%dw 2.0
 
 output application/x-www-form-urlencoded
 
@@ -166,10 +171,12 @@ monto:vars.montoPagar
 
 }]]]></http:body>
 						</http:request>
-						<logger level="INFO" doc:name="Logger" doc:id="64e59f6f-3873-42cd-acba-0bfca1d66ab9" message="EXITO!!"/>
+						<logger level="INFO" doc:name="Logger" doc:id="64e59f6f-3873-42cd-acba-0bfca1d66ab9" message="EXITO!!" />
+						<flow-ref doc:name="Flow Reference" doc:id="fa74e4da-777e-4bff-8517-df907b313123" name="Bitcoin_transformation" />
+						<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	status: "Transaccion realizada",&#10;	bitcoin: vars.bitUSD&#10;}]' doc:name="Set Payload" doc:id="9540b9b6-2f4a-44c2-a23f-f328314d4829" />
 					</when>
-					<otherwise >
-						<logger level="INFO" doc:name="Logger" doc:id="9aa4a921-e2d7-4486-8d89-0fed663b50ac" message="IMPOSIBLE REALIZAR LA TRANSACCION"/>
+					<otherwise>
+						<logger level="INFO" doc:name="Logger" doc:id="9aa4a921-e2d7-4486-8d89-0fed663b50ac" message="IMPOSIBLE REALIZAR LA TRANSACCION" />
 					</otherwise>
 				</choice>
 			</otherwise>
@@ -205,5 +212,17 @@ cedula:vars.cuenta
 				</http:request>
 		<set-variable value="#[payload.montoCuenta]" doc:name="Set Variable" doc:id="b673e193-e593-4706-8c8a-2ac341e0456c" variableName="montoCuenta2" />
 		<logger level="INFO" doc:name="Logger" doc:id="b1025349-4ce4-489a-a2d7-e2261693bb50" message="El monto de la cuenta es&gt;&gt; #[vars.montoCuenta1]" />
+	</sub-flow>
+	<sub-flow name="Bitcoin_transformation" doc:id="3a8529a3-f1ba-4f76-982a-aff991ed28f5" >
+		<http:request method="GET" doc:name="Request" doc:id="381c10ac-8ad3-42c0-975c-bcb705823214" config-ref="HTTP_Request_configuration3" path="tobtc">
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	currency : "USD",
+	value : vars.montoPagar
+}]]]></http:query-params>
+		</http:request>
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="28cabb1b-8d1d-4a47-bba3-3a32c0b5fd31" variableName="bitUSD"/>
+		<logger level="TRACE" doc:name="Logger" doc:id="09b5bbea-edd3-456b-b027-341c6b0f6079" message="#[vars.bitUSD]"/>
 	</sub-flow>
 </mule>

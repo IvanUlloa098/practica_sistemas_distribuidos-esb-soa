@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_f37bd58e_6006_4aa4_8fae_63f6507969da_Input_Variables_montoPagar = Any
+

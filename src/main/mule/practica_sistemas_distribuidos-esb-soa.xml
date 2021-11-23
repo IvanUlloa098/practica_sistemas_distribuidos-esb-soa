@@ -30,15 +30,15 @@ http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/m
 			<repeatable-in-memory-stream />
 		</http:listener>
 		<set-variable value="#[payload.id]" doc:name="Set Variable" doc:id="27cbb4d3-894b-4ba0-9cd2-10c153ed9a4d" variableName="banco" />
-		<set-variable value="#[payload.cedula]" doc:name="Set Variable" doc:id="596f4493-89c3-41a6-ac0f-094145f239aa" variableName="cedula"/>
-		<set-variable value="#[payload.monto]" doc:name="Set Variable" doc:id="665392cd-c23f-4ceb-8821-fc626738e5ee" variableName="montoPagar"/>
-		<set-variable value="#[payload.cuenta]" doc:name="Set Variable" doc:id="995d682e-b97d-4da0-b9b2-6c8f913b94b0" variableName="cuenta"/>
-		<logger level="INFO" doc:name="Logger" doc:id="1f10051e-7b20-403a-96f6-89b382e71a9d" message="This is the payload&gt;&gt; #[vars.cedula]"/>
+		<set-variable value="#[payload.cedula]" doc:name="Set Variable" doc:id="596f4493-89c3-41a6-ac0f-094145f239aa" variableName="cedula" />
+		<set-variable value="#[payload.monto]" doc:name="Set Variable" doc:id="665392cd-c23f-4ceb-8821-fc626738e5ee" variableName="montoPagar" />
+		<set-variable value="#[payload.cuenta]" doc:name="Set Variable" doc:id="995d682e-b97d-4da0-b9b2-6c8f913b94b0" variableName="cuenta" />
+		<logger level="INFO" doc:name="Logger" doc:id="1f10051e-7b20-403a-96f6-89b382e71a9d" message="This is the payload&gt;&gt; #[vars.cedula]" />
 		<choice doc:name="Choice" doc:id="c8aa3e82-9924-4487-9015-259284fa917e" >
 			<when expression="#[vars.banco == 1]">
 				<flow-ref doc:name="Flow Reference" doc:id="6739cfe5-8d19-4f9e-9d1d-a4db5c451883" name="Obtencion_variables"/>
 				<choice doc:name="Choice" doc:id="a776a5fc-1043-4a22-984e-0cb0bda6894b" >
-					<when expression="#[vars.montoPagar &lt; vars.montoCuenta1]">
+					<when expression="#[vars.montoPagar &lt; vars.montoCuenta2]">
 						<http:request method="POST" doc:name="Request" doc:id="7486aeff-1244-4914-b96b-bfc19fca0cce" config-ref="HTTP_Request_configuration1" path="api/actulizarMontoCuenta/">
 							<http:body ><![CDATA[#[%dw 2.0
 
@@ -106,12 +106,77 @@ monto:vars.montoPagar
 			</when>
 			<otherwise >
 				<flow-ref doc:name="Flow Reference" doc:id="4a5194bc-f7f2-487d-a58f-46a723c4cc2a" name="Obtencion_variables"/>
-				<logger level="INFO" doc:name="Logger" doc:id="052a7653-de53-4561-8ccc-0a59dd864c83" message="Not the correct answer"/>
+				<choice doc:name="Choice" doc:id="998803c3-63c8-44a6-9749-043d442165d6" >
+					<when expression="#[vars.montoPagar &lt; vars.montoCuenta1]">
+						<http:request method="POST" doc:name="Request" doc:id="f218b7b1-bfe0-481c-bd01-423e6c100f1d" config-ref="HTTP_Request_configuration1" path="api/actulizarMontoCuenta/">
+							<http:body ><![CDATA[#[%dw 2.0
+
+output application/x-www-form-urlencoded
+
+---
+
+{
+
+cedula:vars.cedula,
+monto:(vars.montoCuenta1 - vars.montoPagar)
+
+}]]]></http:body>
+						</http:request>
+						<http:request method="POST" doc:name="Request" doc:id="db08f628-42aa-476f-9476-861cae2b7905" config-ref="HTTP_Request_configuration1" path="api/crearTransferenciaCuenta/">
+							<http:body ><![CDATA[#[%dw 2.0
+
+output application/x-www-form-urlencoded
+
+---
+
+{
+
+cedula:vars.cedula,
+tipoTransferencia:"retiro",
+monto:vars.montoPagar
+
+}]]]></http:body>
+						</http:request>
+						<http:request method="POST" doc:name="Request" doc:id="79425c92-8546-475c-b2f6-e0d880703e28" config-ref="HTTP_Request_configuration2" path="api/actulizarMontoCuenta/">
+							<http:body ><![CDATA[#[%dw 2.0
+
+output application/x-www-form-urlencoded
+
+---
+
+{
+
+cedula:vars.cedula,
+monto:(vars.montoCuenta2 + vars.montoPagar)
+
+}]]]></http:body>
+						</http:request>
+						<http:request method="POST" doc:name="Request" doc:id="bcef131c-7825-4553-8df4-efcbbd758c10" config-ref="HTTP_Request_configuration2" path="api/crearTransferenciaCuenta/">
+							<http:body ><![CDATA[#[%dw 2.0
+
+output application/x-www-form-urlencoded
+
+---
+
+{
+
+cedula:vars.cedula,
+tipoTransferencia:"deposito",
+monto:vars.montoPagar
+
+}]]]></http:body>
+						</http:request>
+						<logger level="INFO" doc:name="Logger" doc:id="64e59f6f-3873-42cd-acba-0bfca1d66ab9" message="EXITO!!"/>
+					</when>
+					<otherwise >
+						<logger level="INFO" doc:name="Logger" doc:id="9aa4a921-e2d7-4486-8d89-0fed663b50ac" message="IMPOSIBLE REALIZAR LA TRANSACCION"/>
+					</otherwise>
+				</choice>
 			</otherwise>
 		</choice>
 	</flow>
 	<sub-flow name="Obtencion_variables" doc:id="f37bd58e-6006-4aa4-8fae-63f6507969da" >
-		<http:request method="POST" doc:name="Request" doc:id="8f8268a2-23f9-4fa7-a966-015061b62f76" config-ref="HTTP_Request_configuration" path="api/buscarCedula/">
+		<http:request method="POST" doc:name="Request" doc:id="8f8268a2-23f9-4fa7-a966-015061b62f76" config-ref="HTTP_Request_configuration1" path="api/buscarCedula/">
 			<http:body><![CDATA[#[%dw 2.0
 
 output application/x-www-form-urlencoded

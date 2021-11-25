@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_df91014c_804f_45a2_8fd6_94dfbf75c775_Output_Variables_montoPagar = Any
+

@@ -32,18 +32,17 @@ http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/m
 		<http:listener doc:name="Listener" doc:id="d20b3809-3bff-4d05-aeb1-baa06064b786" config-ref="HTTP_Listener_config" path="getInformacionBanco">
 			<repeatable-in-memory-stream />
 		</http:listener>
-		<set-variable value="#[payload.id]" doc:name="Set Variable" doc:id="27cbb4d3-894b-4ba0-9cd2-10c153ed9a4d" variableName="banco" />
-		<set-variable value="#[payload.cedula]" doc:name="Set Variable" doc:id="596f4493-89c3-41a6-ac0f-094145f239aa" variableName="cedula" />
-		<set-variable value="#[payload.monto]" doc:name="Set Variable" doc:id="665392cd-c23f-4ceb-8821-fc626738e5ee" variableName="montoPagar" />
-		<set-variable value="#[payload.cuenta]" doc:name="Set Variable" doc:id="995d682e-b97d-4da0-b9b2-6c8f913b94b0" variableName="cuenta" />
-		<logger level="INFO" doc:name="Logger" doc:id="1f10051e-7b20-403a-96f6-89b382e71a9d" message="This is the payload&gt;&gt; #[vars.cedula]" />
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="347259cb-d0a3-43c5-b180-0b48b47027a3" />
+		<flow-ref doc:name="Flow Reference" doc:id="9d40da00-d223-4d27-aa02-c1b740b432c9" name="inicializar"/>
 		<choice doc:name="Choice" doc:id="c8aa3e82-9924-4487-9015-259284fa917e" >
 			<when expression="#[vars.banco == 1]">
-				<flow-ref doc:name="Flow Reference" doc:id="6739cfe5-8d19-4f9e-9d1d-a4db5c451883" name="Obtencion_variables"/>
-				<choice doc:name="Choice" doc:id="a776a5fc-1043-4a22-984e-0cb0bda6894b" >
+				<flow-ref doc:name="Flow Reference" doc:id="6739cfe5-8d19-4f9e-9d1d-a4db5c451883" name="Obtencion_variables_pichincha"/>
+				<choice doc:name="Choice" doc:id="0ba62e36-0398-46a5-9b4b-0c28ee597bf9" >
+					<when expression="#[vars.cedula == vars.cedulaPichincha]">
+						<choice doc:name="Choice" doc:id="a776a5fc-1043-4a22-984e-0cb0bda6894b">
 					<when expression="#[vars.montoPagar &lt; vars.montoCuenta2]">
-						<http:request method="POST" doc:name="Request" doc:id="7486aeff-1244-4914-b96b-bfc19fca0cce" config-ref="HTTP_Request_configuration1" path="api/actulizarMontoCuenta/">
-							<http:body ><![CDATA[#[%dw 2.0
+						<http:request method="POST" doc:name="Request" doc:id="7486aeff-1244-4914-b96b-bfc19fca0cce" config-ref="HTTP_Request_configuration1" path="api/actulizarMontoCuentaNumeroCuenta/">
+							<http:body><![CDATA[#[%dw 2.0
 
 output application/x-www-form-urlencoded
 
@@ -51,13 +50,13 @@ output application/x-www-form-urlencoded
 
 {
 
-cedula:vars.cedula,
+cedula:vars.cuenta,
 monto:(vars.montoCuenta1 + vars.montoPagar)
 
 }]]]></http:body>
 						</http:request>
 						<http:request method="POST" doc:name="Request" doc:id="1047c77a-7219-47ca-bcc0-07fb625125df" config-ref="HTTP_Request_configuration1" path="api/crearTransferenciaCuenta/">
-							<http:body ><![CDATA[#[%dw 2.0
+							<http:body><![CDATA[#[%dw 2.0
 
 output application/x-www-form-urlencoded
 
@@ -72,7 +71,7 @@ monto:vars.montoPagar
 }]]]></http:body>
 						</http:request>
 						<http:request method="POST" doc:name="Request" doc:id="8199e542-e65d-444e-8aa0-5fa90c468b17" config-ref="HTTP_Request_configuration2" path="api/actulizarMontoCuenta/">
-							<http:body ><![CDATA[#[%dw 2.0
+							<http:body><![CDATA[#[%dw 2.0
 
 output application/x-www-form-urlencoded
 
@@ -86,7 +85,7 @@ monto:(vars.montoCuenta2 - vars.montoPagar)
 }]]]></http:body>
 						</http:request>
 						<http:request method="POST" doc:name="Request" doc:id="1b9df4a1-38c8-44be-bd47-b4f62686a015" config-ref="HTTP_Request_configuration2" path="api/crearTransferenciaCuenta/">
-							<http:body ><![CDATA[#[%dw 2.0
+							<http:body><![CDATA[#[%dw 2.0
 
 output application/x-www-form-urlencoded
 
@@ -101,17 +100,26 @@ monto:vars.montoPagar
 }]]]></http:body>
 						</http:request>
 						<logger level="INFO" doc:name="Logger" doc:id="b6dbdfc9-816b-44a9-a978-5cbe19f1c3af" message="EXITO!!!" />
-						<flow-ref doc:name="Flow Reference" doc:id="7705625e-a67c-4606-9740-cb58758a826e" name="Bitcoin_transformation"/>
+						<flow-ref doc:name="Flow Reference" doc:id="7705625e-a67c-4606-9740-cb58758a826e" name="Bitcoin_transformation" />
 						<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	status: "Transaccion realizada",&#10;	bitcoin: vars.bitUSD&#10;}]' doc:name="Set Payload" doc:id="de6894de-41d7-4bd0-a815-0aca314d7d9f" />
 					</when>
+					<otherwise>
+						<logger level="INFO" doc:name="Logger" doc:id="aedb0fe6-fb22-4d23-84e8-70aeeb0dc182" message="IMPOSIBLE REALIZAR LA TRANSACCION" />
+						<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	status: "Transaccion fallida",&#10;	bitcoin: 0&#10;}]' doc:name="Set Payload" doc:id="9b11dc0e-7960-4a07-ad01-ceecf76c949f" />
+					</otherwise>
+				</choice>
+					</when>
 					<otherwise >
-						<logger level="INFO" doc:name="Logger" doc:id="aedb0fe6-fb22-4d23-84e8-70aeeb0dc182" message="IMPOSIBLE REALIZAR LA TRANSACCION"/>
+						<logger level="INFO" doc:name="Logger" doc:id="47a85166-0a4e-4da0-9b41-4b2d9cb8a78f" message="CEDULA INCORRECTA"/>
+						<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	status: "Transaccion fallida: Cedula no coincide con nuestra información",&#10;	bitcoin: 0&#10;}]' doc:name="Set Payload" doc:id="2d12f77e-f74b-41c3-8e22-a3f43fa898a9" />
 					</otherwise>
 				</choice>
 			</when>
 			<otherwise >
-				<flow-ref doc:name="Flow Reference" doc:id="4a5194bc-f7f2-487d-a58f-46a723c4cc2a" name="Obtencion_variables"/>
-				<choice doc:name="Choice" doc:id="998803c3-63c8-44a6-9749-043d442165d6">
+				<flow-ref doc:name="Flow Reference" doc:id="4a5194bc-f7f2-487d-a58f-46a723c4cc2a" name="Obtencion_variables_austro"/>
+				<choice doc:name="Choice" doc:id="f42f9d0a-a5df-44e5-9720-a41ae3353c89" >
+					<when expression="#[vars.cedula == vars.cedulaAustro]">
+						<choice doc:name="Choice" doc:id="998803c3-63c8-44a6-9749-043d442165d6">
 					<when expression="#[vars.montoPagar &lt; vars.montoCuenta1]">
 						<http:request method="POST" doc:name="Request" doc:id="f218b7b1-bfe0-481c-bd01-423e6c100f1d" config-ref="HTTP_Request_configuration1" path="api/actulizarMontoCuenta/">
 							<http:body><![CDATA[#[%dw 2.0
@@ -142,7 +150,7 @@ monto:vars.montoPagar
 
 }]]]></http:body>
 						</http:request>
-						<http:request method="POST" doc:name="Request" doc:id="79425c92-8546-475c-b2f6-e0d880703e28" config-ref="HTTP_Request_configuration2" path="api/actulizarMontoCuenta/">
+						<http:request method="POST" doc:name="Request" doc:id="79425c92-8546-475c-b2f6-e0d880703e28" config-ref="HTTP_Request_configuration2" path="api/actulizarMontoCuentaNumeroCuenta/">
 							<http:body><![CDATA[#[%dw 2.0
 
 output application/x-www-form-urlencoded
@@ -151,7 +159,7 @@ output application/x-www-form-urlencoded
 
 {
 
-cedula:vars.cedula,
+cedula:vars.cuenta,
 monto:(vars.montoCuenta2 + vars.montoPagar)
 
 }]]]></http:body>
@@ -177,13 +185,28 @@ monto:vars.montoPagar
 					</when>
 					<otherwise>
 						<logger level="INFO" doc:name="Logger" doc:id="9aa4a921-e2d7-4486-8d89-0fed663b50ac" message="IMPOSIBLE REALIZAR LA TRANSACCION" />
+						<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	status: "Transaccion fallida",&#10;	bitcoin: 0&#10;}]' doc:name="Set Payload" doc:id="604015b1-9f03-4428-8012-90e4890d5c79" />
+					</otherwise>
+				</choice>
+					</when>
+					<otherwise >
+						<logger level="INFO" doc:name="Logger" doc:id="0bef808d-9862-4561-bed1-f3bd44ef3136" category="CEDULA INCORRECTA"/>
+						<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	status: "Transaccion fallida: Cedula no coincide con nuestra información",&#10;	bitcoin: 0&#10;}]' doc:name="Set Payload" doc:id="725e1b95-aabb-42ec-a24f-53d172cb6fb9" />
 					</otherwise>
 				</choice>
 			</otherwise>
 		</choice>
 	</flow>
-	<sub-flow name="Obtencion_variables" doc:id="f37bd58e-6006-4aa4-8fae-63f6507969da" >
-		<http:request method="POST" doc:name="Request" doc:id="8f8268a2-23f9-4fa7-a966-015061b62f76" config-ref="HTTP_Request_configuration1" path="api/buscarCedula/">
+	<sub-flow name="inicializar" doc:id="df91014c-804f-45a2-8fd6-94dfbf75c775" >
+		<set-variable value="#[payload.id]" doc:name="Set Variable" doc:id="27cbb4d3-894b-4ba0-9cd2-10c153ed9a4d" variableName="banco" />
+		<set-variable value="#[payload.cedula]" doc:name="Set Variable" doc:id="596f4493-89c3-41a6-ac0f-094145f239aa" variableName="cedula" />
+		<set-variable value="#[payload.monto]" doc:name="Set Variable" doc:id="665392cd-c23f-4ceb-8821-fc626738e5ee" variableName="montoPagar" />
+		<set-variable value="#[payload.cuenta]" doc:name="Set Variable" doc:id="995d682e-b97d-4da0-b9b2-6c8f913b94b0" variableName="cuenta" />
+		<set-variable value="#[payload.cuentaCl]" doc:name="Set Variable" doc:id="f696b2ee-b7e5-4868-bad3-c66894ea11a0" variableName="cuentaCl"/>
+		<logger level="INFO" doc:name="Logger" doc:id="1f10051e-7b20-403a-96f6-89b382e71a9d" message="This is the payload&gt;&gt; #[vars.cedula]" />
+	</sub-flow>
+	<sub-flow name="Obtencion_variables_austro" doc:id="f37bd58e-6006-4aa4-8fae-63f6507969da" >
+		<http:request method="POST" doc:name="Request" doc:id="8f8268a2-23f9-4fa7-a966-015061b62f76" config-ref="HTTP_Request_configuration1" path="api/buscarCuenta/">
 			<http:body><![CDATA[#[%dw 2.0
 
 output application/x-www-form-urlencoded
@@ -192,12 +215,13 @@ output application/x-www-form-urlencoded
 
 {
 
-cedula:vars.cedula
+cuenta:vars.cuentaCl
 
 }]]]></http:body>
 		</http:request>
 		<set-variable value="#[payload.montoCuenta]" doc:name="Set Variable" doc:id="04403f4b-6e86-482e-813b-78e940215c91" variableName="montoCuenta1" />
-		<http:request method="POST" doc:name="Request" doc:id="a62b813c-69b6-4f98-a6e3-671ed9c9ed01" config-ref="HTTP_Request_configuration2" path="api/buscarCedula/">
+		<set-variable value="#[payload.cedulaCliente]" doc:name="Set Variable" doc:id="1d418ee2-f033-41a2-b993-39fc9266d507" variableName="cedulaAustro"/>
+		<http:request method="POST" doc:name="Request" doc:id="a62b813c-69b6-4f98-a6e3-671ed9c9ed01" config-ref="HTTP_Request_configuration2" path="api/buscarCuenta/">
 					<http:body><![CDATA[#[%dw 2.0
 
 output application/x-www-form-urlencoded
@@ -206,12 +230,43 @@ output application/x-www-form-urlencoded
 
 {
 
-cedula:vars.cuenta
+cuenta:vars.cuenta
 
 }]]]></http:body>
 				</http:request>
 		<set-variable value="#[payload.montoCuenta]" doc:name="Set Variable" doc:id="b673e193-e593-4706-8c8a-2ac341e0456c" variableName="montoCuenta2" />
-		<logger level="INFO" doc:name="Logger" doc:id="b1025349-4ce4-489a-a2d7-e2261693bb50" message="El monto de la cuenta es&gt;&gt; #[vars.montoCuenta1]" />
+		<set-variable value="#[payload.cedulaCliente]" doc:name="Set Variable" doc:id="41c5edd9-1fff-4aec-9b82-f8b03431eb1c" variableName="cedulaPichincha"/>
+	</sub-flow>
+	<sub-flow name="Obtencion_variables_pichincha" doc:id="6c0457f7-6bb2-491e-be2c-b8b4311c4779" >
+		<http:request method="POST" doc:name="Request" doc:id="1c232cdd-1cd8-408d-9af2-7bb60714ce6f" config-ref="HTTP_Request_configuration1" path="api/buscarCuenta/">
+			<http:body ><![CDATA[#[%dw 2.0
+
+output application/x-www-form-urlencoded
+
+---
+
+{
+
+cuenta:vars.cuenta
+}]]]></http:body>
+		</http:request>
+		<set-variable value="#[payload.montoCuenta]" doc:name="Set Variable" doc:id="233be2cd-c055-4436-bfce-80faff2dd0cd" variableName="montoCuenta1"/>
+		<set-variable value="#[payload.cedulaCliente]" doc:name="Set Variable" doc:id="677cfa6d-1664-4c19-8c82-de49e0c183c6" variableName="cedulaAustro"/>
+		<http:request method="POST" doc:name="Request" doc:id="204bf8f5-3bce-43b8-9fe8-411889a93380" config-ref="HTTP_Request_configuration2" path="api/buscarCuenta/">
+			<http:body ><![CDATA[#[%dw 2.0
+
+output application/x-www-form-urlencoded
+
+---
+
+{
+
+cuenta:vars.cuentaCl
+
+}]]]></http:body>
+		</http:request>
+		<set-variable value="#[payload.montoCuenta]" doc:name="Set Variable" doc:id="3bde5a78-90f7-4607-b3cc-2148c84b640b" variableName="montoCuenta2"/>
+		<set-variable value="#[payload.cedulaCliente]" doc:name="Set Variable" doc:id="f9a5319c-e98c-4a37-8a7e-6b65934ef45b" variableName="cedulaPichincha"/>
 	</sub-flow>
 	<sub-flow name="Bitcoin_transformation" doc:id="3a8529a3-f1ba-4f76-982a-aff991ed28f5" >
 		<http:request method="GET" doc:name="Request" doc:id="381c10ac-8ad3-42c0-975c-bcb705823214" config-ref="HTTP_Request_configuration3" path="tobtc">
